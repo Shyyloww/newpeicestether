@@ -31,7 +31,6 @@ def build_payload(c2_url: str, output_dir: str, payload_name: str, debug_mode: b
             '--distpath', output_dir, '--name', payload_name
         ]
         
-        # This is important for GUI-based payloads
         if not debug_mode:
             pyinstaller_cmd.append('--windowed')
             
