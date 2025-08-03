@@ -7,16 +7,23 @@ import threading
 app = Flask(__name__)
 
 # --- PERSISTENCE SETUP ---
-SESSIONS_FILE = 'sessions.json'
+# Use Render's recommended persistent storage directory. This file will live on the server.
+DATA_DIR = '/var/data' 
+SESSIONS_FILE = os.path.join(DATA_DIR, 'sessions.json')
+
 SESSIONS = {}
 TASKS = {}
 sessions_lock = threading.Lock()
 tasks_lock = threading.Lock()
 
 def load_sessions():
-    """Loads sessions from the JSON file into memory."""
+    """Loads sessions from the JSON file on the server's disk into memory."""
     global SESSIONS
     with sessions_lock:
+        if not os.path.exists(DATA_DIR):
+            try: os.makedirs(DATA_DIR) # Create the directory if it doesn't exist
+            except OSError as e: print(f"[!] Could not create data directory: {e}")
+        
         if os.path.exists(SESSIONS_FILE):
             try:
                 with open(SESSIONS_FILE, 'r') as f:
@@ -27,7 +34,7 @@ def load_sessions():
         else: SESSIONS = {}
 
 def save_sessions():
-    """Saves the current sessions from memory to the JSON file."""
+    """Saves the current sessions from memory to the JSON file on the server's disk."""
     with sessions_lock:
         with open(SESSIONS_FILE, 'w') as f:
             json.dump(SESSIONS, f, indent=4)
@@ -60,7 +67,7 @@ def get_sessions():
 
 @app.route('/api/delete_session', methods=['POST'])
 def delete_session():
-    """NEW: Permanently deletes a session."""
+    """Permanently deletes a session and its data from sessions.json."""
     data = request.json
     session_id = data.get("session_id")
     if session_id and session_id in SESSIONS:
