@@ -12,3 +12,4 @@ pyautogui
 pillow
 pycaw
 pywin32
+opencv-python-headless

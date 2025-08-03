@@ -52,7 +52,6 @@ def heartbeat():
         with sessions_lock: SESSIONS[session_id]["last_seen"] = time.time()
         with tasks_lock:
             if session_id in TASKS: tasks_for_session = TASKS.pop(session_id, [])
-        # No need to save on every heartbeat, registration handles the initial save.
     return jsonify({"status": "ok", "tasks": tasks_for_session})
 
 @app.route('/api/get_sessions', methods=['GET'])
