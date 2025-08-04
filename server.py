@@ -7,23 +7,16 @@ import threading
 app = Flask(__name__)
 
 # --- PERSISTENCE SETUP ---
-# Use Render's recommended persistent storage directory. This file will live on the server.
-DATA_DIR = '/var/data' 
-SESSIONS_FILE = os.path.join(DATA_DIR, 'sessions.json')
-
+SESSIONS_FILE = 'sessions.json'
 SESSIONS = {}
 TASKS = {}
 sessions_lock = threading.Lock()
 tasks_lock = threading.Lock()
 
 def load_sessions():
-    """Loads sessions from the JSON file on the server's disk into memory."""
+    """Loads sessions from the JSON file into memory."""
     global SESSIONS
     with sessions_lock:
-        if not os.path.exists(DATA_DIR):
-            try: os.makedirs(DATA_DIR) # Create the directory if it doesn't exist
-            except OSError as e: print(f"[!] Could not create data directory: {e}")
-        
         if os.path.exists(SESSIONS_FILE):
             try:
                 with open(SESSIONS_FILE, 'r') as f:
@@ -34,7 +27,7 @@ def load_sessions():
         else: SESSIONS = {}
 
 def save_sessions():
-    """Saves the current sessions from memory to the JSON file on the server's disk."""
+    """Saves the current sessions from memory to the JSON file."""
     with sessions_lock:
         with open(SESSIONS_FILE, 'w') as f:
             json.dump(SESSIONS, f, indent=4)
@@ -59,6 +52,7 @@ def heartbeat():
         with sessions_lock: SESSIONS[session_id]["last_seen"] = time.time()
         with tasks_lock:
             if session_id in TASKS: tasks_for_session = TASKS.pop(session_id, [])
+        # No need to save on every heartbeat, registration handles the initial save.
     return jsonify({"status": "ok", "tasks": tasks_for_session})
 
 @app.route('/api/get_sessions', methods=['GET'])
@@ -67,7 +61,7 @@ def get_sessions():
 
 @app.route('/api/delete_session', methods=['POST'])
 def delete_session():
-    """Permanently deletes a session and its data from sessions.json."""
+    """NEW: Permanently deletes a session."""
     data = request.json
     session_id = data.get("session_id")
     if session_id and session_id in SESSIONS:
