@@ -13,3 +13,4 @@ pillow
 pycaw
 pywin32
 opencv-python-headless
+playsound==1.2.2
