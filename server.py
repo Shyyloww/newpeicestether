@@ -61,7 +61,7 @@ def get_sessions():
 
 @app.route('/api/delete_session', methods=['POST'])
 def delete_session():
-    """NEW: Permanently deletes a session."""
+    """Permanently deletes a session."""
     data = request.json
     session_id = data.get("session_id")
     if session_id and session_id in SESSIONS:

